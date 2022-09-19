@@ -1,73 +1,18 @@
-<html>
-    <body>
-    <h1>Background Removal</h1>
-    <input type="file" id="imgInput" onchange="onChangeInput(event)"/>
-    <button id="predict" onclick="onClickPredict()">Predict</button>
-    <img id="preview" alt="Preview image" hidden=true/>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <link rel="shortcut icon" type="image/ico" href="/assets/favicon.e65aebe1.svg" />
+    <title>Rembg.ai - Free Background Removal Tool</title>
+    <script type="module" crossorigin src="/assets/index.9be8e2e6.js"></script>
+    <link rel="stylesheet" href="/assets/index.d4a17a9b.css">
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
 
-
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js"> </script>
-    <script>
-        function onChangeInput(event) {
-            if(event.target.files.length > 0){
-                var src = URL.createObjectURL(event.target.files[0]);
-                var preview = document.getElementById("preview");
-                preview.src = src;
-                preview.style.display = "block";
-            }
-        }
-
-        function onClickPredict() {
-            const modelPath = 'https://storage.googleapis.com/background-removal-storage/isnet_tfjs_small/model.json';
-            tf.loadGraphModel(modelPath).then((net) => {
-                const IMAGE_SIZE = 1024;
-                const previewImg = document.getElementById("preview");
-                const originImage = tf.browser.fromPixels(previewImg);
-
-                const originHeight = originImage.shape[0];
-                const originWidth = originImage.shape[1];
-                const preds = tf.tidy(() => {
-                    // Normalize the image from [0, 255] to [-1, 1].
-                    // const normalized = img.sub(offset).div(offset);
-                    const resized = tf.image.resizeBilinear(originImage, [IMAGE_SIZE, IMAGE_SIZE]);
-                    let tImg = tf.transpose(resized, [2, 0, 1]);
-                    let normalized = tImg.div(255.);
-                    normalized = normalized.sub(0.5).div(1.0);
-
-                    // Reshape to a single-element batch so we can pass it to predict.
-                    const batched = normalized.reshape([1, 3, IMAGE_SIZE, IMAGE_SIZE]);
-
-                    // Make a prediction through net.
-                    console.log('Predicting');
-                    return net.predict(batched);
-                });
-                console.log('Predicted done!');
-
-                const nobgImg = tf.tidy(() => {
-                    const rawMask = tf.expandDims(tf.squeeze(preds), 2);
-                    const mask = tf.cast(tf.clipByValue(tf.mul(rawMask, 255.), 0., 255.), 'int32');
-                    const alpha = tf.cast(tf.image.resizeBilinear(mask, [originHeight, originWidth]), 'int32');
-                    console.log(originImage.dtype, alpha.dtype);
-                    return tf.concat([tf.cast(originImage, 'int32'), alpha], 2);
-                });
-
-                const canvas = document.createElement("canvas");
-                canvas.width = originWidth;
-                canvas.height = originHeight;
-                tf.browser.toPixels(nobgImg, canvas).then(() => {
-                    const ctx = canvas.getContext("2d");
-
-                    // Then draw the background
-                    ctx.globalCompositeOperation = "destination-over";
-                    ctx.fillStyle = '#000000';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    const a = document.createElement("a");
-                    a.download = 'output.png';
-                    a.href = canvas.toDataURL("image/png");
-                    a.click();
-                });
-            });
-        }
-    </script>
-    </body>
+    
+  </body>
 </html>
